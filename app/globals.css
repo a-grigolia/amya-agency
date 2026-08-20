@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Enables `light:` utilities that apply when <html> has the .light class */
+@custom-variant light (&:where(.light, .light *));
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+:root.light {
+  --background: #ffffff;
+  --foreground: #1b1b1b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-helvetica), "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+/* Glow colors for the plus grid, per theme */
+.plus-grid {
+  --pg-glow1: rgba(255, 255, 255, 0.45);
+  --pg-glow2: rgba(255, 255, 255, 0.18);
+}
+
+:root.light .plus-grid {
+  --pg-glow1: rgba(0, 0, 0, 0.28);
+  --pg-glow2: rgba(0, 0, 0, 0.14);
+}
