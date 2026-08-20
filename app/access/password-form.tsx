@@ -1,25 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Logo } from "@/components/logo";
+import { PlusGridWave } from "@/components/plus-grid-wave";
+import { verifyAccess } from "./actions";
 
-const CORRECT_PASSWORD = "++++";
-const REDIRECT_URL = "https://www.amya.agency/access";
+const REDIRECT_DELAY_MS = 3000;
 
-export function PasswordForm() {
+export function PasswordForm({
+  onSuccess,
+}: {
+  onSuccess: (url: string) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState(false);
+  const [pending, setPending] = useState(false);
 
   // The label floats up as soon as the field is focused and stays up
   // while there is text, even after blurring.
   const active = focused || value.length > 0;
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (value === CORRECT_PASSWORD) {
-      window.location.assign(REDIRECT_URL);
+    if (pending) return;
+    setPending(true);
+    const result = await verifyAccess(value);
+    setPending(false);
+    if (result.ok) {
+      onSuccess(result.url);
     } else {
       setError(true);
     }
@@ -104,6 +115,18 @@ export function AccessGate() {
   const mainRef = useRef<HTMLElement>(null);
   const formAreaRef = useRef<HTMLDivElement>(null);
   const shiftRef = useRef(0);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+
+  // Once the password is verified, show the wave screen for a moment,
+  // then leave for the URL the server returned.
+  useEffect(() => {
+    if (!redirectUrl) return;
+    const id = setTimeout(
+      () => window.location.assign(redirectUrl),
+      REDIRECT_DELAY_MS
+    );
+    return () => clearTimeout(id);
+  }, [redirectUrl]);
 
   /*
    * On mobile the on-screen keyboard shrinks the visual viewport without
@@ -148,12 +171,41 @@ export function AccessGate() {
   return (
     <main
       ref={mainRef}
-      className="flex h-dvh w-full flex-col items-center justify-center gap-[48px] overflow-hidden transition-transform duration-300 ease-out"
+      className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden transition-transform duration-300 ease-out"
     >
-      <Logo className="h-[48px] w-[182px]" />
-      <div ref={formAreaRef}>
-        <PasswordForm />
-      </div>
+      <AnimatePresence mode="wait">
+        {redirectUrl ? (
+          <motion.div
+            key="redirecting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="flex w-full flex-col items-center gap-[48px] px-6"
+          >
+            <p
+              role="status"
+              className="text-[13px] leading-[18px] tracking-[0.13px] text-foreground/70"
+            >
+              You will be redirected shortly
+            </p>
+            <div className="w-full max-w-[704px]">
+              <PlusGridWave />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="form"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeIn" }}
+            className="flex flex-col items-center gap-[48px]"
+          >
+            <Logo className="h-[48px] w-[182px]" />
+            <div ref={formAreaRef}>
+              <PasswordForm onSuccess={setRedirectUrl} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -33,7 +33,7 @@ const CFG = {
   hoverSmoothing: 100, // ms time constant for halo fade in/out
 } as const;
 
-const PLUS_PATH =
+export const PLUS_PATH =
   "M24 10.2005H13.8004V0H10.2005V10.2005H0V13.8004H10.2005V24H13.8004V13.8004H24V10.2005Z";
 
 type Cell = {
@@ -136,10 +136,16 @@ export function PlusGrid() {
       root!.style.gridAutoRows = `${size}px`;
       root!.style.gap = `${gap}px`;
 
+      // The tracks are narrower than the full-width root and centered by
+      // `justify-center`, so cell centers have to start at that gutter or the
+      // hover halo drifts right of the pointer.
+      const trackWidth = currentCols * size + (currentCols - 1) * gap;
+      const originX = Math.max(0, (avail - trackWidth) / 2);
+
       for (const cell of activeCells()) {
         cell.wrap.style.width = `${size}px`;
         cell.wrap.style.height = `${size}px`;
-        cell.cx = cell.c * pitch + size / 2;
+        cell.cx = originX + cell.c * pitch + size / 2;
         cell.cy = cell.r * pitch + size / 2;
       }
     }

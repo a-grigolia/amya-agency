@@ -18,7 +18,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
       aria-pressed={isLight}
-      className="-mr-3 flex h-10 w-10 cursor-pointer items-center justify-center opacity-[0.33] transition-opacity duration-200 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+      className="-mr-3 flex h-10 w-10 cursor-pointer items-center justify-center max-[479px]:mr-0 opacity-[0.33] transition-opacity duration-200 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
     >
       <motion.svg
         viewBox="0 0 16 16"

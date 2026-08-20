@@ -53,7 +53,7 @@ export default function Home() {
             creatives building the next generation of technology companies.
           </h2>
         </div>
-        <div className="flex flex-col items-end justify-end max-[479px]:mt-2">
+        <div className="flex flex-col items-end justify-end max-[479px]:items-center">
           <ThemeToggle />
         </div>
       </footer>
