@@ -258,23 +258,38 @@ export function PlusGrid() {
       pointerY = e.clientY - rect.top;
     }
 
+    /*
+     * Mouse: halo appears on enter and follows the cursor.
+     * Touch: halo appears on finger-down, follows the drag, and fades on
+     * lift (pointerup/cancel) so a tap never freezes the hover state.
+     * The root has touch-action:none, so touches that start on the grid
+     * drive the halo instead of scrolling/bouncing the page.
+     */
     const onEnter = (e: PointerEvent) => {
-      // Touch taps shouldn't freeze the grid in hover state
-      if (e.pointerType === "touch") return;
+      if (e.pointerType === "touch") return; // touch starts on pointerdown
+      hovering = true;
+      updatePointer(e);
+    };
+    const onDown = (e: PointerEvent) => {
       hovering = true;
       updatePointer(e);
     };
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "touch") return;
       hovering = true;
       updatePointer(e);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType === "touch") hovering = false;
     };
     const onLeave = () => {
       hovering = false;
     };
 
     root.addEventListener("pointerenter", onEnter, { passive: true });
+    root.addEventListener("pointerdown", onDown, { passive: true });
     root.addEventListener("pointermove", onMove, { passive: true });
+    root.addEventListener("pointerup", onUp, { passive: true });
+    root.addEventListener("pointercancel", onUp, { passive: true });
     root.addEventListener("pointerleave", onLeave, { passive: true });
 
     const observer = new ResizeObserver(layout);
@@ -288,7 +303,10 @@ export function PlusGrid() {
       observer.disconnect();
       window.removeEventListener("resize", layout);
       root.removeEventListener("pointerenter", onEnter);
+      root.removeEventListener("pointerdown", onDown);
       root.removeEventListener("pointermove", onMove);
+      root.removeEventListener("pointerup", onUp);
+      root.removeEventListener("pointercancel", onUp);
       root.removeEventListener("pointerleave", onLeave);
       root.replaceChildren();
     };
@@ -297,7 +315,7 @@ export function PlusGrid() {
   return (
     <div
       ref={rootRef}
-      className="plus-grid mx-auto grid w-full justify-center text-foreground"
+      className="plus-grid mx-auto grid w-full touch-none justify-center text-foreground select-none [-webkit-touch-callout:none]"
       aria-hidden="true"
     />
   );
