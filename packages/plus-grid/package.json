@@ -1,0 +1,27 @@
+{
+  "name": "react-plus-grid",
+  "version": "0.1.0",
+  "description": "A flickering plus-sign grid for React, animated by a single requestAnimationFrame loop, with twinkles and a pointer-following halo.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/plus-grid.tsx",
+  "types": "./src/plus-grid.tsx",
+  "exports": {
+    ".": "./src/plus-grid.tsx"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "keywords": [
+    "react",
+    "animation",
+    "grid",
+    "requestanimationframe",
+    "background"
+  ]
+}
