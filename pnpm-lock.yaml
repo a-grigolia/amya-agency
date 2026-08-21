@@ -20,6 +20,9 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      react-plus-grid:
+        specifier: workspace:*
+        version: link:packages/plus-grid
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -45,6 +48,12 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+
+  packages/plus-grid:
+    dependencies:
+      react:
+        specifier: '>=18'
+        version: 19.2.8
 
 packages:
 

@@ -13,6 +13,11 @@ import { useEffect, useRef, type CSSProperties } from "react";
  * Cells are created as plain DOM nodes rather than React elements so the loop
  * can write styles directly without re-rendering. Style writes are quantized
  * and diffed against the last written value to keep them off most frames.
+ *
+ * With `snake` enabled, clicking the grid starts a game of snake on the same
+ * cells: the snake and food are extra brightness sources fed into the shared
+ * easing pipeline, so segments light up and vacated cells trail off with the
+ * same smoothing the twinkles use.
  */
 
 export const PLUS_PATH =
@@ -51,6 +56,13 @@ export type PlusGridProps = {
   glowColor?: string;
   /** Outer, softer glow color for bright cells. */
   glowColorSoft?: string;
+  /**
+   * Easter egg: clicking the grid (or pressing an arrow key while hovering
+   * it) starts a game of snake, steered with the arrow keys. Wrap-around
+   * walls, food, growth, death on self-collision. Escape or dying fades back
+   * to the ambient animation.
+   */
+  snake?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -72,6 +84,21 @@ type Cell = {
 // ms time constants for the exponential easing
 const OPACITY_SMOOTHING = 25;
 const HOVER_SMOOTHING = 100;
+
+// Snake: base ms per move, how much each food speeds it up, and the floor.
+const SNAKE_TICK = 160;
+const SNAKE_TICK_STEP = 5;
+const SNAKE_TICK_MIN = 100;
+const SNAKE_START_LENGTH = 3;
+// Brightness falls off from head (1) toward the tail by this much.
+const SNAKE_TAIL_FADE = 0.45;
+
+const SNAKE_DIRS: Record<string, readonly [number, number]> = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const smooth01 = (t: number) =>
@@ -106,6 +133,7 @@ export function PlusGrid({
   tickMax = 800,
   glowColor = "var(--pg-glow1, rgba(255, 255, 255, 0.45))",
   glowColorSoft = "var(--pg-glow2, rgba(255, 255, 255, 0.18))",
+  snake = false,
   className,
   style,
 }: PlusGridProps = {}) {
@@ -169,6 +197,29 @@ export function PlusGrid({
     let pitch = baseSize + baseGap;
     let hoverRadius = pitch * hoverRadiusCells;
 
+    /*
+     * Snake state. Segments are [row, col], head first. The overlay holds a
+     * per-cell brightness (indexed r * cols + c) repainted on each move, and
+     * the frame loop feeds it into the same easing as twinkles and the halo.
+     * snakeAmount smooths 0..1 across game start/end so the backdrop dims in
+     * and the board fades out instead of snapping.
+     */
+    let snakePlaying = false;
+    let snakeAmount = 0;
+    let snakeSegs: Array<[number, number]> = [];
+    let snakeDir: readonly [number, number] = [0, 1];
+    let dirQueue: Array<readonly [number, number]> = [];
+    let foodR = -1;
+    let foodC = -1;
+    let nextMoveAt = 0;
+    const overlay = new Float32Array(rows * cols);
+
+    function endSnake() {
+      snakePlaying = false;
+      dirQueue.length = 0;
+      overlay.fill(0);
+    }
+
     function layout() {
       const targetCols = window.innerWidth >= breakpoint ? cols : colsMobile;
       if (targetCols !== currentCols) {
@@ -176,6 +227,9 @@ export function PlusGrid({
         for (const cell of cells) {
           cell.wrap.style.display = cell.c < currentCols ? "grid" : "none";
         }
+        // The board just changed shape under the snake; end the game rather
+        // than leave segments stranded on hidden columns.
+        if (snakePlaying) endSnake();
       }
       active = cells.filter((cell) => cell.c < currentCols);
 
@@ -238,6 +292,80 @@ export function PlusGrid({
       nextTickAt = now + rand(tickMin, tickMax);
     }
 
+    const snakeTickMs = () =>
+      Math.max(
+        SNAKE_TICK_MIN,
+        SNAKE_TICK - SNAKE_TICK_STEP * (snakeSegs.length - SNAKE_START_LENGTH)
+      );
+
+    function paintOverlay() {
+      overlay.fill(0);
+      const n = snakeSegs.length;
+      for (let i = 0; i < n; i++) {
+        const [r, c] = snakeSegs[i];
+        const v = n === 1 ? 1 : 1 - (i / (n - 1)) * SNAKE_TAIL_FADE;
+        overlay[r * cols + c] = Math.max(overlay[r * cols + c], v);
+      }
+    }
+
+    function spawnFood() {
+      for (let tries = 0; tries < 200; tries++) {
+        const r = Math.floor(Math.random() * rows);
+        const c = Math.floor(Math.random() * currentCols);
+        if (!snakeSegs.some(([sr, sc]) => sr === r && sc === c)) {
+          foodR = r;
+          foodC = c;
+          return;
+        }
+      }
+      // Board is (nearly) full — no food; the snake just roams victorious.
+      foodR = -1;
+      foodC = -1;
+    }
+
+    function startSnake(dir: readonly [number, number], now: number) {
+      snakeDir = dir;
+      dirQueue.length = 0;
+      snakeSegs = [];
+      const hr = Math.floor(rows / 2);
+      const hc = Math.floor(currentCols / 2);
+      // Body extends opposite the travel direction, wrapped onto the board.
+      for (let i = 0; i < SNAKE_START_LENGTH; i++) {
+        snakeSegs.push([
+          (hr - dir[0] * i + rows * SNAKE_START_LENGTH) % rows,
+          (hc - dir[1] * i + currentCols * SNAKE_START_LENGTH) % currentCols,
+        ]);
+      }
+      spawnFood();
+      paintOverlay();
+      nextMoveAt = now + snakeTickMs();
+      snakePlaying = true;
+    }
+
+    function moveSnake(now: number) {
+      if (dirQueue.length) snakeDir = dirQueue.shift()!;
+      const [hr, hc] = snakeSegs[0];
+      const nr = (hr + snakeDir[0] + rows) % rows;
+      const nc = (hc + snakeDir[1] + currentCols) % currentCols;
+      const ate = nr === foodR && nc === foodC;
+
+      // Self-collision. The tail cell is vacated this move unless we grow,
+      // so it only counts when eating.
+      const lim = ate ? snakeSegs.length : snakeSegs.length - 1;
+      for (let i = 0; i < lim; i++) {
+        if (snakeSegs[i][0] === nr && snakeSegs[i][1] === nc) {
+          endSnake();
+          return;
+        }
+      }
+
+      snakeSegs.unshift([nr, nc]);
+      if (ate) spawnFood();
+      else snakeSegs.pop();
+      paintOverlay();
+      nextMoveAt = now + snakeTickMs();
+    }
+
     function frame(now: number) {
       // Clamped so a backgrounded tab does not resume with one huge step.
       const dt = Math.min(100, now - lastTime);
@@ -250,12 +378,27 @@ export function PlusGrid({
         hoverAmount = hoverTarget;
       }
 
-      // Twinkles keep running unless the halo is meaningfully visible.
-      if (hoverAmount < 0.5 && now >= nextTickAt) scheduleTwinkles(now);
+      const snakeTarget = snakePlaying ? 1 : 0;
+      snakeAmount +=
+        (snakeTarget - snakeAmount) * (1 - Math.exp(-dt / HOVER_SMOOTHING));
+      if (Math.abs(snakeTarget - snakeAmount) < 0.001) {
+        snakeAmount = snakeTarget;
+      }
 
-      const base =
-        baseOpacity + (hoverBaseOpacity - baseOpacity) * hoverAmount;
+      if (snakePlaying && now >= nextMoveAt) moveSnake(now);
+
+      // Twinkles keep running unless the halo or the game is meaningfully
+      // visible.
+      if (hoverAmount < 0.5 && snakeAmount < 0.5 && now >= nextTickAt) {
+        scheduleTwinkles(now);
+      }
+
+      // The backdrop dims for the halo and further for the game board.
+      const dim = Math.max(hoverAmount, snakeAmount);
+      const base = baseOpacity + (hoverBaseOpacity - baseOpacity) * dim;
       const radiusSq = hoverRadius * hoverRadius;
+      // Food pulses on a ~1.1s sine so it reads as the thing to chase.
+      const foodPulse = 0.55 + 0.35 * Math.sin(now / 180);
 
       for (const cell of active) {
         // Twinkle envelope: 0 -> 1 -> 0 sine over the twinkle duration.
@@ -270,17 +413,30 @@ export function PlusGrid({
         }
 
         // Hover halo: eased falloff from the pointer, scaled by hoverAmount.
+        // Suppressed while the game runs so the snake reads clearly.
         let halo = 0;
-        if (hoverAmount > 0.001) {
+        if (hoverAmount > 0.001 && snakeAmount < 0.999) {
           const dx = pointerX - cell.cx;
           const dy = pointerY - cell.cy;
           const d2 = dx * dx + dy * dy;
           if (d2 <= radiusSq) {
-            halo = smooth01(1 - Math.sqrt(d2) / hoverRadius) * hoverAmount;
+            halo =
+              smooth01(1 - Math.sqrt(d2) / hoverRadius) *
+              hoverAmount *
+              (1 - snakeAmount);
           }
         }
 
-        const bright = Math.max(twinkle, halo);
+        // Snake segments and food, faded by snakeAmount across start/end.
+        let game = 0;
+        if (snakeAmount > 0.001) {
+          game = overlay[cell.r * cols + cell.c] * snakeAmount;
+          if (snakePlaying && cell.r === foodR && cell.c === foodC) {
+            game = Math.max(game, foodPulse * snakeAmount);
+          }
+        }
+
+        const bright = Math.max(twinkle * (1 - snakeAmount), halo, game);
         const target = base + (1 - base) * bright;
         cell.opacity +=
           (target - cell.opacity) * (1 - Math.exp(-dt / OPACITY_SMOOTHING));
@@ -331,6 +487,12 @@ export function PlusGrid({
     const onDown = (e: PointerEvent) => {
       hovering = true;
       updatePointer(e);
+      // Clicking the grid starts the game (heading right; arrows steer from
+      // there). Touch is excluded: the game is keyboard-steered, so a tap
+      // would start something the player can't control.
+      if (snake && !snakePlaying && e.pointerType !== "touch") {
+        startSnake([0, 1], performance.now());
+      }
     };
     const onMove = (e: PointerEvent) => {
       hovering = true;
@@ -343,6 +505,37 @@ export function PlusGrid({
       hovering = false;
     };
 
+    /*
+     * Snake input. A click starts the game (see onDown); an arrow key while
+     * hovering also works. Arrows are only claimed while playing or hovering,
+     * so page scrolling is never hijacked by accident; once playing, arrows
+     * steer and Escape quits. Turns are queued (two deep) so a fast
+     * up-then-left lands on consecutive ticks, and a queued turn can't
+     * reverse straight into the neck.
+     */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (snakePlaying) {
+          endSnake();
+          e.preventDefault();
+        }
+        return;
+      }
+      const dir = SNAKE_DIRS[e.key];
+      if (!dir) return;
+      if (!snakePlaying) {
+        if (!hovering) return;
+        startSnake(dir, performance.now());
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      const last = dirQueue.length ? dirQueue[dirQueue.length - 1] : snakeDir;
+      const reversal = dir[0] === -last[0] && dir[1] === -last[1];
+      const same = dir[0] === last[0] && dir[1] === last[1];
+      if (!reversal && !same && dirQueue.length < 2) dirQueue.push(dir);
+    };
+
     root.addEventListener("pointerenter", onEnter, { passive: true });
     root.addEventListener("pointerdown", onDown, { passive: true });
     root.addEventListener("pointermove", onMove, { passive: true });
@@ -350,6 +543,7 @@ export function PlusGrid({
     root.addEventListener("pointercancel", onUp, { passive: true });
     root.addEventListener("pointerleave", onLeave, { passive: true });
 
+    if (snake) window.addEventListener("keydown", onKey);
     window.addEventListener("resize", layout);
 
     rafId = requestAnimationFrame(frame);
@@ -357,6 +551,7 @@ export function PlusGrid({
     return () => {
       cancelAnimationFrame(rafId);
       observer.disconnect();
+      if (snake) window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", layout);
       root.removeEventListener("pointerenter", onEnter);
       root.removeEventListener("pointerdown", onDown);
@@ -384,6 +579,7 @@ export function PlusGrid({
     tickMax,
     glowColor,
     glowColorSoft,
+    snake,
   ]);
 
   return (

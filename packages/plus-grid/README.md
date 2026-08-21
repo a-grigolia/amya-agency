@@ -63,6 +63,27 @@ narrower than the container.
 `prefers-reduced-motion: reduce` renders a static grid at `baseOpacity` and
 never starts the loop.
 
+## Snake
+
+Pass `snake` to hide a game of snake in the grid:
+
+```tsx
+<PlusGrid snake />
+```
+
+**Clicking the grid** starts a game — the snake heads right and the arrow keys
+steer it. (An arrow key pressed while hovering the grid also starts it; arrows
+outside the grid scroll the page as usual.) The snake is drawn as bright cells
+(head brightest, fading toward the tail), food pulses, and the backdrop dims
+while twinkles and the hover halo pause. Walls wrap around. Eating grows
+the snake and speeds it up slightly; running into yourself ends the game, as
+does Escape or resizing across the breakpoint. On game over everything just
+fades back to the ambient animation — no score, no UI.
+
+The game reuses the animation pipeline: segments and food are extra brightness
+sources fed into the same per-cell easing, so movement leaves a soft trail for
+free. It is keyboard-only and disabled under `prefers-reduced-motion`.
+
 ## Props
 
 All props are optional.
@@ -84,6 +105,7 @@ All props are optional.
 | `tickMin` / `tickMax` | `400` / `800` | Delay range between ticks in ms. |
 | `glowColor` | `var(--pg-glow1, rgba(255,255,255,0.45))` | Inner glow on bright cells. |
 | `glowColorSoft` | `var(--pg-glow2, rgba(255,255,255,0.18))` | Outer, softer glow. |
+| `snake` | `false` | Easter egg: clicking the grid starts a game of snake. |
 | `className` | — | Applied to the root element. |
 | `style` | — | Merged over the root's own layout styles. |
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PLUS_PATH } from "@/components/plus-grid";
+import { PLUS_PATH } from "react-plus-grid";
 
 /*
  * Wave variant of the plus grid, shown on the access page after a correct
