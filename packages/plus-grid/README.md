@@ -106,6 +106,7 @@ All props are optional.
 | `glowColor` | `var(--pg-glow1, rgba(255,255,255,0.45))` | Inner glow on bright cells. |
 | `glowColorSoft` | `var(--pg-glow2, rgba(255,255,255,0.18))` | Outer, softer glow. |
 | `snake` | `false` | Easter egg: clicking the grid starts a game of snake. |
+| `onSnakeChange` | — | Called with `true`/`false` as a snake game starts/ends. Safe to pass an inline function. |
 | `className` | — | Applied to the root element. |
 | `style` | — | Merged over the root's own layout styles. |
 

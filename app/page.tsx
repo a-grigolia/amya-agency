@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusGrid } from "react-plus-grid";
+import { SnakeGrid } from "@/components/snake-grid";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const RADIO_URL =
@@ -25,7 +25,7 @@ export default function Home() {
       {/* Centered plus grid */}
       <section className="flex w-full flex-1 items-center justify-center px-6">
         <div className="w-full max-w-[704px]">
-          <PlusGrid snake className="plus-grid text-foreground" />
+          <SnakeGrid />
         </div>
       </section>
 

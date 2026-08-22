@@ -63,6 +63,12 @@ export type PlusGridProps = {
    * to the ambient animation.
    */
   snake?: boolean;
+  /**
+   * Called with `true` when a snake game starts and `false` when it ends.
+   * Held in a ref internally, so passing a new function identity does not
+   * rebuild the grid.
+   */
+  onSnakeChange?: (playing: boolean) => void;
   className?: string;
   style?: CSSProperties;
 };
@@ -134,10 +140,15 @@ export function PlusGrid({
   glowColor = "var(--pg-glow1, rgba(255, 255, 255, 0.45))",
   glowColorSoft = "var(--pg-glow2, rgba(255, 255, 255, 0.18))",
   snake = false,
+  onSnakeChange,
   className,
   style,
 }: PlusGridProps = {}) {
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // Latest-ref so a new callback identity never tears down the grid.
+  const onSnakeChangeRef = useRef(onSnakeChange);
+  onSnakeChangeRef.current = onSnakeChange;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -215,9 +226,11 @@ export function PlusGrid({
     const overlay = new Float32Array(rows * cols);
 
     function endSnake() {
+      if (!snakePlaying) return;
       snakePlaying = false;
       dirQueue.length = 0;
       overlay.fill(0);
+      onSnakeChangeRef.current?.(false);
     }
 
     function layout() {
@@ -340,6 +353,7 @@ export function PlusGrid({
       paintOverlay();
       nextMoveAt = now + snakeTickMs();
       snakePlaying = true;
+      onSnakeChangeRef.current?.(true);
     }
 
     function moveSnake(now: number) {
