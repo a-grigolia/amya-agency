@@ -34,7 +34,7 @@ function ArrowGlyph({ rotate }: { rotate?: string }) {
 
 function ArrowKey({ rotate }: { rotate?: string }) {
   return (
-    <span className="flex h-[12px] w-[24px] items-center justify-center rounded-[2px] border-[0.5px] border-foreground/15 bg-foreground/[0.18] light:border-black light:bg-black light:text-white">
+    <span className="flex h-[12px] w-[24px] items-center justify-center rounded-[2px] border-[0.5px] border-foreground/[0.33] bg-foreground/5 light:border-black light:bg-black light:text-white">
       <ArrowGlyph rotate={rotate} />
     </span>
   );
@@ -55,7 +55,7 @@ function ControlsHint() {
         className="flex flex-col items-center gap-4"
       >
         {/* Light mode goes solid black with white legends, MacBook-key style. */}
-        <span className="flex h-[26px] w-[58px] items-end rounded-[2px] border-[0.5px] border-foreground/20 bg-foreground/20 p-1 text-foreground light:border-black light:bg-black light:text-white">
+        <span className="flex h-[26px] w-[58px] items-end rounded-[2px] border-[0.5px] border-foreground/[0.33] bg-foreground/5 p-1 text-foreground light:border-black light:bg-black light:text-white">
           esc
         </span>
         <span className="text-foreground/70">Exit</span>
@@ -80,7 +80,7 @@ function ControlsHint() {
 
 /**
  * The home page grid with the snake easter egg enabled. When a game starts,
- * a controls hint (from Figma node 475:556) animates in below the grid,
+ * a controls hint (from Figma node 475:705) animates in below the grid,
  * stays briefly, and motions away.
  */
 export function SnakeGrid() {
