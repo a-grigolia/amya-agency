@@ -12,7 +12,7 @@ Next.js rebuild of [amya.agency](https://amya.agency), migrated from Webflow for
 
 ## Pages
 
-- `/` — single-viewport landing page: top heading, flickering plus-sign grid (twinkle + hover halo, driven by one `requestAnimationFrame` loop), bottom bar with Access / Contact / Radio links and the dark/light toggle (+ rotates into − on switch).
+- `/` — single-viewport landing page: top heading, flickering plus-sign grid (twinkle + hover halo, driven by one `requestAnimationFrame` loop), bottom bar with Access / Contact links and the dark/light toggle (+ rotates into − on switch).
 - `/contact` — contact info and LinkedIn link, themed.
 - `/access` — password gate. Checks `ACCESS_PASSWORD` and sets a cookie for 7 days. The content behind the gate is a placeholder.
 

@@ -2,9 +2,6 @@ import Link from "next/link";
 import { SnakeGrid } from "@/components/snake-grid";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-const RADIO_URL =
-  "https://open.spotify.com/playlist/7zVLzg6Lud1n7t1kjmqNMA?si=XwcsadTURAiqBr7Col-EwQ";
-
 /*
  * When the nav group is hovered, every link drops to the body-text color
  * (foreground at 66%) and only the link under the cursor stays full-strength.
@@ -39,14 +36,6 @@ export default function Home() {
             <Link href="/contact" className={navLinkClass}>
               Contact
             </Link>
-            <a
-              href={RADIO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={navLinkClass}
-            >
-              Radio
-            </a>
           </nav>
           <h2 className="max-w-[410px] leading-[18px] font-normal text-foreground/70 max-[479px]:mx-auto">
             Amya Agency represents world-class engineers, operators, and
