@@ -27,7 +27,9 @@ export default function Home() {
       </section>
 
       {/* Bottom bar */}
-      <footer className="flex w-full items-end justify-between gap-6 p-12 max-md:p-6 max-[479px]:flex-col max-[479px]:items-stretch max-[479px]:gap-4">
+      {/* Padding is mobile-first: 24px sides with a 12px bottom on mobile,
+          24px all around from 480px, 48px on md+ */}
+      <footer className="relative flex w-full items-end justify-between gap-6 p-6 pb-3 max-[479px]:flex-col max-[479px]:items-stretch min-[480px]:pb-6 md:p-12">
         <div className="flex flex-col gap-4 text-[13px] tracking-[0.13px] max-[479px]:text-center">
           <nav className="group flex gap-3 max-[479px]:justify-center">
             <Link href="/access" className={navLinkClass}>
@@ -45,6 +47,19 @@ export default function Home() {
         <div className="flex flex-col items-end justify-end max-[479px]:items-center">
           <ThemeToggle />
         </div>
+        {/* Mobile: in the stacked footer flow, centered at the very bottom.
+            480px+: out of flow (absolute against the footer) so it floats
+            below the nav/description column without shifting the layout —
+            offsets place it 8px below the text block (19px on md+, per the
+            design, where the larger footer padding leaves room for it). */}
+        <Link
+          href="/anti-spam-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-center text-[10px] tracking-[0.1px] whitespace-nowrap text-foreground/[0.33] transition-colors duration-200 hover:text-foreground/70 min-[480px]:absolute min-[480px]:bottom-[6px] min-[480px]:left-6 min-[480px]:leading-none md:bottom-[19px] md:left-12"
+        >
+          Anti-spam policy
+        </Link>
       </footer>
     </main>
   );
